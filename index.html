@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contextual Entries PWA</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="manifest.json" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="probe.js"></script> <!- Added probe script early -->
+</head>
+<body>
+    <div id="loginOptions">
+        <button id="guestLoginBtn">Play as Guest</button>
+        <div id="loginMessage"></div>
+    </div>
+
+    <div id="appContent" style="display: none;">
+        <button id="regularGameBtn">Play Regular Game</button>
+        <button id="diceChallengeBtn">Play Dice Challenge</button>
+        <button id="wordSafariBtn">Play Word Safari</button>
+      <button id="wordRelicBtn">Play Word Relic</button>
+
+    
+    
+    <div id="wordRelicArea" style="display: none;">
+            <h2>Mystery Word Relic</h2>
+            <p id="relicClue"></p>
+
+            <div id="categoryGuessArea" style="display: none;">
+                <p>Guess the Category:</p>
+                <button>Name</button>
+                <button>Place</button>
+                <button>Animal</button>
+                <button>Thing</button>
+                <p id="selectedCategory"></p>
+            </div>
+
+            <div id="wordGuessArea">
+                <label for="wordGuess">Your Word Guess:</label>
+                <input type="text" id="wordGuess">
+                <button id="restoreRelicBtn" disabled>Restore Relic</button>
+            </div>
+
+            <div id="relicInfo" style="display: none;">
+                </div>
+
+            <button id="findRelicBtn">Find Today's Relic</button>
+        </div>
+
+
+        
+
+        <div id="regularGameArea" style="display: none;">
+            <h2>Play Name, Place, Animal, Thing</h2>
+            <div class="input-section">
+                <label for="category">Category:</label>
+                <select id="category">
+                    <option value="Name">Name</option>
+                    <option value="Place">Place</option>
+                    <option value="Animal">Animal</option>
+                    <option value="Thing">Thing</option>
+                </select>
+            </div>
+            <div class="input-section">
+                <label for="item">Your Entry:</label>
+                <input type="text" id="item">
+                <button onclick="addRegularItem(document.getElementById('category').value)">Add Entry</button>
+            </div>
+            <div class="options">
+                <input type="checkbox" id="playWithComputer">
+                <label for="playWithComputer">Play with Computer</label>
+                <span id="regularGameTimer">30 seconds</span>
+            </div>
+            <div id="entries">
+                </div>
+            <div id="playerScore">Score: 0</div>
+            <div id="computerScore">Computer Score: 0</div>
+            <button onclick="submitRegularEntries()">Submit All</button>
+        </div>
+
+        <div id="diceChallengeArea" style="display: none;">
+            <h2>Dice Challenge</h2>
+            <div id="diceRollStartArea">
+                <button id="rollDiceBtn">Roll Dice</button>
+                <div id="challengeLetterDisplay">?</div>
+                <span id="challengeTimer">60 seconds</span>
+            </div>
+            <div id="challengeInputs" style="display: none;">
+                <input type="text" id="nameChallenge" placeholder="Name">
+                <input type="text" id="placeChallenge" placeholder="Place">
+                <input type="text" id="animalChallenge" placeholder="Animal">
+                <input type="text" id="thingChallenge" placeholder="Thing">
+                <button onclick="diceChallenge.submitDiceChallengeEntries()">Submit</button>
+            </div>
+            <div id="diceChallengeResults"></div>
+        </div>
+
+        <div id="wordSafariArea" style="display: none;">
+            <h2>Word Safari</h2>
+            <p>Destination: <span id="currentDestination"></span></p>
+            <div class="clue-container">
+                <label id="category1Label"></label> <span id="category1Clue" style="display: none;"></span><span id="category1JumbleClue" style="display: none;"></span><span id="category1FillClue" style="display: none;"></span> <input type="text" id="safariCategory1">
+            </div>
+            <div class="clue-container">
+                <label id="category2Label"></label> <span id="category2Clue" style="display: none;"></span><span id="category2JumbleClue" style="display: none;"></span><span id="category2FillClue" style="display: none;"></span> <input type="text" id="safariCategory2">
+            </div>
+            <div class="clue-container">
+                <label id="category3Label"></label> <span id="category3Clue" style="display: none;"></span><span id="category3JumbleClue" style="display: none;"></span><span id="category3FillClue" style="display: none;"></span> <input type="text" id="safariCategory3">
+            </div>
+            <div class="clue-container">
+                <label id="category4Label"></label> <span id="category4Clue" style="display: none;"></span><span id="category4JumbleClue" style="display: none;"></span><span id="category4FillClue" style="display: none;"></span> <input type="text" id="safariCategory4">
+            </div>
+            <button onclick="wordSafari.submitSafariEntries()">Submit Entries</button>
+            <button onclick="wordSafari.surpriseMe()">Surprise Me</button>
+            <div id="passportArea">
+                <h3>Passport Stamps:</h3>
+                <div id="stampsDisplay"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameIssueTroubleshooter" style="position: fixed; bottom: 20px; left: 20px; background-color: #f0f0f0; border: 1px solid #ccc; padding: 10px; border-radius: 5px;">
+        <p>Experiencing game issues?</p>
+        <button onclick="resetGameCache()">Click here to try and resolve.</button>
+        <div id="cacheResetMessage" style="margin-top: 5px; font-size: 0.9em;"></div>
+    </div>
+
+    <script type="module" src="utils.js"></script>
+    <script type="module" src="error-handler.js"></script>
+    <script type="module" src="core.js"></script>
+    <script type="module" src="auth.js"></script>
+    <script type="module" src="gameNavigation.js"></script>
+    <script type="module" src="game-logic.js"></script>
+    <script type="module" src="game-ui.js"></script>
+    <script type="module" src="diceChallenge.js"></script>
+    <script type="module" src="wordSafari.js"></script>
+    <script type="module" src="regularGame.js"></script>
+    <script type="module" src="uiUpdates.js"></script>
+    <script src="serviceWorkerRegistration.js"></script>
+    <script src="safari-content.js"></script>
+    <script src="wireframeGenerator.js"></script>
+    <script src="debug.js"></script>
+    <script src="probe.js"></script>
+    <script>
+        // Check for a specific parameter in the URL to show the troubleshooter
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('showTroubleshooter') === 'true') {
+            document.getElementById('gameIssueTroubleshooter').style.display = 'block';
+        } else {
+            // Ensure it's visible by default if no parameter
+            document.getElementById('gameIssueTroubleshooter').style.display = 'block';
+        }
+
+        async function resetGameCache() {
+            const cacheResetMessage = document.getElementById('cacheResetMessage');
+            cacheResetMessage.textContent = 'Attempting to reset cache...';
+            try {
+                const cacheNames = await caches.keys();
+                for (const cacheName of cacheNames) {
+                    await caches.delete(cacheName);
+                }
+                cacheResetMessage.textContent = 'Cache reset successful.';
+            } catch (error) {
+                cacheResetMessage.textContent = 'Error resetting cache.';
+                console.error('Error resetting cache:', error);
+            }
+
+            if ('serviceWorker' in navigator) {
+                cacheResetMessage.textContent += ' Attempting to unregister service worker...';
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        const unregistered = await registration.unregister();
+                        if (unregistered) {
+                            cacheResetMessage.textContent += ' Service worker unregistered. Please reload the page.';
+                        } else {
+                            cacheResetMessage.textContent += ' Failed to unregister service worker.';
+                        }
+                    } else {
+                        cacheResetMessage.textContent += ' No service worker registered.';
+                    }
+                } catch (error) {
+                    cacheResetMessage.textContent += ' Error unregistering service worker.';
+                    console.error('Error unregistering service worker:', error);
+                }
+            } else {
+                cacheResetMessage.textContent += ' Service workers are not supported in this browser.';
+            }
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js');
+        }
+    </script>
+</body>
+</html>
