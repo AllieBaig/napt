@@ -1,140 +1,126 @@
 // diceChallenge.js
 
-import { getRandomNumber } from './utils.js';
+import { getRandomElement } from './utils.js';
 import { attachSafeClickListener, logError } from './error-handler.js';
 
-let dice = [];
-let heldDice = [false, false, false, false, false];
-let rollsLeft = 3;
-let currentScore = 0;
+// Config
+const MAX_ATTEMPTS = 3;
+const wordList = ['apple', 'bread', 'candy', 'delta', 'eagle', 'flame'];
 
-function resetDiceGame() {
-    dice = [0, 0, 0, 0, 0];
-    heldDice = [false, false, false, false, false];
-    rollsLeft = 3;
-    currentScore = 0;
-    updateDiceDisplay();
-    updateRollsLeftDisplay();
-    updateScoreDisplay();
-    enableRollButton();
-    disableSubmitButton();
-    resetHoldButtons();
+// Game State
+const gameState = {
+    currentWord: '',
+    attemptsLeft: MAX_ATTEMPTS,
+    hintRevealed: false
+};
+
+// Cached DOM Elements
+const elements = {
+    input: document.getElementById('diceWordInput'),
+    submitBtn: document.getElementById('diceSubmitBtn'),
+    hintBtn: document.getElementById('revealHintBtn'),
+    message: document.getElementById('diceMessage'),
+    maskedWord: document.getElementById('maskedDiceWord'),
+    attempts: document.getElementById('attemptsLeft')
+};
+
+// Game Control
+function startDiceChallenge() {
+    gameState.currentWord = getRandomElement(wordList).toLowerCase();
+    gameState.attemptsLeft = MAX_ATTEMPTS;
+    gameState.hintRevealed = false;
+
+    resetUI();
+    updateUI();
+    setButtonsDisabled(false, false);
 }
 
-function rollDice() {
-    if (rollsLeft > 0) {
-        for (let i = 0; i < dice.length; i++) {
-            if (!heldDice[i]) {
-                dice[i] = getRandomNumber(1, 6);
+function submitDiceGuess() {
+    try {
+        const guess = elements.input.value.trim().toLowerCase();
+        if (!guess) {
+            showMessage('Please enter a guess.', 'warning');
+            return;
+        }
+
+        if (guess === gameState.currentWord) {
+            showMessage('Correct! You win.', 'success');
+            endChallenge();
+        } else {
+            gameState.attemptsLeft--;
+            if (gameState.attemptsLeft <= 0) {
+                showMessage(`Out of attempts! The word was "${gameState.currentWord}".`, 'error');
+                endChallenge();
+            } else {
+                showMessage('Incorrect guess. Try again.', 'warning');
+                updateUI();
             }
         }
-        rollsLeft--;
-        updateDiceDisplay();
-        updateRollsLeftDisplay();
-        if (rollsLeft === 0) {
-            disableRollButton();
-            enableSubmitButton();
-        }
+    } catch (error) {
+        console.error("Error in submitDiceGuess:", error);
+        logError(`submitDiceGuess failed: ${error.message}`);
     }
 }
 
-function toggleHold(event) {
-    const index = event.target.dataset.index;
-    if (index !== undefined) {
-        heldDice[index] = !heldDice[index];
-        updateDiceHoldDisplay(index);
+function revealHint() {
+    gameState.hintRevealed = true;
+    updateUI();
+    elements.hintBtn.disabled = true;
+}
+
+function endChallenge() {
+    setButtonsDisabled(true, true);
+}
+
+function updateUI() {
+    elements.maskedWord.textContent = gameState.hintRevealed
+        ? getHint(gameState.currentWord)
+        : '*'.repeat(gameState.currentWord.length);
+
+    elements.attempts.textContent = `Attempts left: ${gameState.attemptsLeft}`;
+}
+
+function resetUI() {
+    if (elements.input) elements.input.value = '';
+    clearMessages();
+}
+
+function setButtonsDisabled(submitDisabled, hintDisabled) {
+    if (elements.submitBtn) elements.submitBtn.disabled = submitDisabled;
+    if (elements.hintBtn) elements.hintBtn.disabled = hintDisabled;
+}
+
+function getHint(word) {
+    if (word.length <= 2) return word[0] + '*';
+    return word[0] + '*'.repeat(word.length - 2) + word[word.length - 1];
+}
+
+function showMessage(msg, type) {
+    if (elements.message) {
+        elements.message.textContent = msg;
+        elements.message.className = type;
     }
 }
 
-function submitDiceScore() {
-    // Basic scoring logic: sum of all dice
-    currentScore = dice.reduce((sum, die) => sum + die, 0);
-    updateScoreDisplay();
-    disableRollButton();
-    enableSubmitButton(); // Keep submit enabled for now
-    // In a real game, you'd have more complex scoring rules
-}
-
-function updateDiceDisplay() {
-    const diceElements = document.querySelectorAll('.dice');
-    diceElements.forEach((die, index) => {
-        die.textContent = dice[index];
-    });
-}
-
-function updateRollsLeftDisplay() {
-    const rollsLeftDisplay = document.getElementById('rollsLeft');
-    if (rollsLeftDisplay) {
-        rollsLeftDisplay.textContent = rollsLeft;
+function clearMessages() {
+    if (elements.message) {
+        elements.message.textContent = '';
+        elements.message.className = '';
     }
-}
-
-function updateScoreDisplay() {
-    const scoreDisplay = document.getElementById('diceScore');
-    if (scoreDisplay) {
-        scoreDisplay.textContent = currentScore;
-    }
-}
-
-function updateDiceHoldDisplay(index) {
-    const diceElement = document.querySelector(`.dice[data-index="${index}"]`);
-    if (diceElement) {
-        diceElement.classList.toggle('held');
-    }
-}
-
-function enableRollButton() {
-    const rollButton = document.getElementById('rollDiceBtn');
-    if (rollButton) {
-        rollButton.disabled = false;
-    }
-}
-
-function disableRollButton() {
-    const rollButton = document.getElementById('rollDiceBtn');
-    if (rollButton) {
-        rollButton.disabled = true;
-    }
-}
-
-function enableSubmitButton() {
-    const submitButton = document.getElementById('submitDiceScoreBtn');
-    if (submitButton) {
-        submitButton.disabled = false;
-    }
-}
-
-function disableSubmitButton() {
-    const submitButton = document.getElementById('submitDiceScoreBtn');
-    if (submitButton) {
-        submitButton.disabled = true;
-    }
-}
-
-function resetHoldButtons() {
-    const diceElements = document.querySelectorAll('.dice');
-    diceElements.forEach(die => {
-        die.classList.remove('held');
-    });
 }
 
 function initializeDiceChallenge() {
-    const rollDiceButton = document.getElementById('rollDiceBtn');
-    if (rollDiceButton) {
-        attachSafeClickListener(rollDiceButton, rollDice, 'rollDiceBtn');
+    if (elements.submitBtn) {
+        attachSafeClickListener(elements.submitBtn, submitDiceGuess, 'diceSubmitBtn');
+    } else {
+        logError('Missing submit button element');
     }
 
-    const submitDiceScoreButton = document.getElementById('submitDiceScoreBtn');
-    if (submitDiceScoreButton) {
-        attachSafeClickListener(submitDiceScoreButton, submitDiceScore, 'submitDiceScoreBtn');
+    if (elements.hintBtn) {
+        attachSafeClickListener(elements.hintBtn, revealHint, 'revealHintBtn');
+    } else {
+        logError('Missing hint button element');
     }
-
-    const diceElements = document.querySelectorAll('.dice');
-    diceElements.forEach(die => {
-        attachSafeClickListener(die, toggleHold, `dice-${die.dataset.index}`);
-    });
-
-    resetDiceGame(); // Initialize the game state
 }
 
-export { resetDiceGame, rollDice, toggleHold, submitDiceScore, initializeDiceChallenge };
+export { startDiceChallenge, initializeDiceChallenge };
