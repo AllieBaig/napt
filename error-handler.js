@@ -1,72 +1,96 @@
 // error-handler.js
 
-function attachSafeClickListener(element, callback, elementName = 'unknown element') {
+/**
+ * Optional remote logger function. Should accept an object: { message, level, timestamp, context }
+ */
+let remoteLogger = null;
+
+/**
+ * Configure global error handler options.
+ * @param {Object} options
+ * @param {function} [options.remote] - Remote logging function
+ */
+function configureErrorHandler({ remote } = {}) {
+    if (typeof remote === 'function') {
+        remoteLogger = remote;
+    }
+}
+
+/**
+ * Appends a message to the error log UI container.
+ * @param {string} message
+ * @param {Date} timestamp
+ */
+function appendErrorToLogUI(message, timestamp) {
+    const errorLogContainer = document.getElementById('errorLog');
+    if (errorLogContainer) {
+        const entry = document.createElement('li');
+        entry.textContent = `${timestamp.toISOString()}: ${message}`;
+        errorLogContainer.appendChild(entry);
+    }
+}
+
+/**
+ * Logs an error locally and optionally remotely.
+ * @param {string} message - The error message
+ * @param {'info'|'warn'|'error'} [level='error'] - Severity level
+ * @param {Object} [context] - Additional context for logging
+ */
+function logError(message, level = 'error', context = {}) {
+    const timestamp = new Date();
+
+    // Log to UI
+    try {
+        appendErrorToLogUI(message, timestamp);
+    } catch (uiError) {
+        console.error("Failed to append to error log UI:", uiError);
+    }
+
+    // Console
+    console[level](`[${timestamp.toISOString()}] ${message}`, context);
+
+    // Remote logger
+    try {
+        if (remoteLogger) {
+            remoteLogger({ message, level, timestamp, context });
+        }
+    } catch (e) {
+        console.error("Remote logger failed:", e);
+    }
+}
+
+/**
+ * Attaches a safe event listener with try/catch error logging.
+ * @param {Element} element - The DOM element
+ * @param {string} eventType - The event type (e.g., 'click')
+ * @param {Function} handler - The event handler function
+ * @param {string} [name='unknown'] - Identifier for debugging
+ */
+function attachSafeListener(element, eventType, handler, name = 'unknown') {
     if (!element) {
-        const errorMessage = `Error: Element "${elementName}" not found. Cannot attach click listener.`;
-        console.error(errorMessage);
-        logError(errorMessage);
+        logError(`Element not found for listener: ${name}`);
         return;
     }
 
-    element.addEventListener('click', () => {
-        try {
-            callback();
-        } catch (error) {
-            console.error(`Error during click on "${elementName}":`, error);
-            logError(`Click error on "${elementName}": ${error.message}`);
-            // Optionally provide user feedback here, e.g., a subtle message
-        }
-    });
-}
-
-function attachSafeTouchStartListener(element, callback, elementName = 'unknown element') {
-    if (!element) {
-        const errorMessage = `Error: Element "${elementName}" not found. Cannot attach touchstart listener.`;
-        console.error(errorMessage);
-        logError(errorMessage);
+    if (typeof handler !== 'function') {
+        logError(`Handler for "${name}" is not a function`);
         return;
     }
 
-    element.addEventListener('touchstart', () => {
+    function wrappedHandler(event) {
         try {
-            callback();
+            handler.call(element, event);
         } catch (error) {
-            console.error(`Error during touchstart on "${elementName}":`, error);
-            logError(`Touchstart error on "${elementName}": ${error.message}`);
-            // Optionally provide user feedback here
+            const message = error instanceof Error ? error.message : String(error);
+            logError(`Error in ${eventType} handler for "${name}": ${message}`, 'error', { event, name });
         }
-    });
+    }
+
+    element.addEventListener(eventType, wrappedHandler);
 }
 
-function logError(errorMessage) {
-    const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] ${errorMessage}\n`;
-
-    // --- Choose your logging mechanism here ---
-
-    // 1. Log to console (for development/debugging):
-    console.log("Error Log:", logMessage);
-
-    // 2. Append to a client-side storage (e.g., localStorage - simple, but limited):
-    let errorLogs = localStorage.getItem('appErrors') || '';
-    localStorage.setItem('appErrors', errorLogs + logMessage);
-
-    // 3. Send to a server-side logging endpoint (more robust for production):
-    fetch('/log-error', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: logMessage }),
-    }).catch(networkError => {
-        console.error("Error sending log to server:", networkError);
-        // Optionally store in localStorage as a fallback if server logging fails
-    });
-
-    // 4. Use IndexedDB for more structured client-side logging (more complex):
-    // (Implementation would go here)
-
-    // --- End of logging mechanism ---
-}
-
-export { attachSafeClickListener, attachSafeTouchStartListener, logError };
+export {
+    configureErrorHandler,
+    logError,
+    attachSafeListener
+};
