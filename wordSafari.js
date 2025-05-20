@@ -1,14 +1,15 @@
 // wordSafari.js
 
 import { getRandomElement } from './utils.js';
-import { attachSafeClickListener, logError } from './error-handler.js'; // Import error handling
-import * as uiUpdates from './uiUpdates.js'; // Potentially for displaying messages
+import { attachSafeClickListener, logError } from './error-handler.js';
+import * as uiUpdates from './uiUpdates.js';
+import { getWordsForCategory, categories, wordsPerCategory } from './wordData.js';
 
-const categories = ['Name', 'Place', 'Animal', 'Thing'];
+const getEl = id => document.getElementById(id);
+
 let currentCategoryIndex = 0;
 let currentWords = [];
 let submittedWords = [];
-const wordsPerCategory = 5; // Adjust as needed
 
 function startGame() {
     currentCategoryIndex = 0;
@@ -16,53 +17,46 @@ function startGame() {
     currentWords = generateWordsForCategory(categories[currentCategoryIndex]);
     updateCategoryDisplay();
     updateSubmittedWordsDisplay();
-    document.getElementById('wordSafariInput').value = '';
-    document.getElementById('submitSafariWordBtn').disabled = false;
+    resetInput();
+    getEl('submitSafariWordBtn').disabled = false;
+    focusInput();
 }
 
 function generateWordsForCategory(category) {
-    // Replace this with your actual word list retrieval logic,
-    // possibly from safari-content.js or an API
-    const allWords = getWordsForCategory(category); // Assume this function exists
-    if (allWords && allWords.length > wordsPerCategory) {
-        const shuffled = [...allWords].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, wordsPerCategory);
-    } else if (allWords) {
-        return [...allWords];
-    } else {
-        return [];
-    }
-}
+    const allWords = getWordsForCategory(category);
+    if (!allWords) return [];
 
-// Assume this function exists in safari-content.js or elsewhere
-function getWordsForCategory(category) {
-    // Example placeholder:
-    if (category === 'Name') return ['Alice', 'Bob', 'Charlie', 'David', 'Eve', 'Fiona'];
-    if (category === 'Place') return ['London', 'Paris', 'Tokyo', 'Sydney', 'Rome', 'Berlin'];
-    if (category === 'Animal') return ['Cat', 'Dog', 'Elephant', 'Lion', 'Tiger', 'Zebra'];
-    if (category === 'Thing') return ['Table', 'Chair', 'Book', 'Pen', 'Computer', 'Phone'];
-    return [];
+    const shuffled = [...allWords].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, wordsPerCategory);
 }
 
 function submitWord() {
-    const wordInput = document.getElementById('wordSafariInput');
+    const wordInput = getEl('wordSafariInput');
     const word = wordInput.value.trim();
 
-    if (word) {
-        if (currentWords.map(w => w.toLowerCase()).includes(word.toLowerCase()) && !submittedWords.map(w => w.toLowerCase()).includes(word.toLowerCase())) {
-            submittedWords.push(word);
-            updateSubmittedWordsDisplay();
-            wordInput.value = '';
-            if (submittedWords.length === currentWords.length) {
-                endCategory();
-            }
-        } else {
-            // Consider providing feedback to the user about incorrect or duplicate words
-            console.log("Incorrect or duplicate word:", word);
-            // Optionally display a message to the user using uiUpdates
-            if (uiUpdates && uiUpdates.displayMessage) {
-                uiUpdates.displayMessage("Incorrect or duplicate word. Try again.", 'warning');
-            }
+    if (!word) return;
+
+    if (!/^[a-zA-Z]+$/.test(word)) {
+        uiUpdates.displayMessage("Please enter valid alphabetic characters only.", 'warning');
+        return;
+    }
+
+    const lowerWord = word.toLowerCase();
+    const lowerCurrentSet = new Set(currentWords.map(w => w.toLowerCase()));
+    const lowerSubmittedSet = new Set(submittedWords.map(w => w.toLowerCase()));
+
+    if (!lowerCurrentSet.has(lowerWord)) {
+        uiUpdates.displayMessage("That word isn’t in the list.", 'warning');
+    } else if (lowerSubmittedSet.has(lowerWord)) {
+        uiUpdates.displayMessage("You already submitted that word.", 'info');
+    } else {
+        submittedWords.push(word);
+        updateSubmittedWordsDisplay();
+        resetInput();
+        focusInput();
+
+        if (submittedWords.length === currentWords.length) {
+            endCategory();
         }
     }
 }
@@ -74,42 +68,55 @@ function endCategory() {
         submittedWords = [];
         updateCategoryDisplay();
         updateSubmittedWordsDisplay();
-        document.getElementById('wordSafariInput').value = '';
+        resetInput();
+        focusInput();
     } else {
         endGame();
     }
 }
 
 function endGame() {
-    document.getElementById('wordSafariArea').style.display = 'none';
-    // Display final score or navigate to a results screen
+    getEl('wordSafariArea').style.display = 'none';
     console.log("Word Safari Ended! Submitted words:", submittedWords);
-    if (uiUpdates && uiUpdates.displayMessage) {
-        uiUpdates.displayMessage("Word Safari Ended!", 'success');
-    }
-    // You might want to calculate a score based on submitted words
+    uiUpdates.displayMessage("Word Safari Ended!", 'success');
 }
 
 function updateCategoryDisplay() {
-    const categoryDisplay = document.getElementById('currentSafariCategory');
+    const categoryDisplay = getEl('currentSafariCategory');
     if (categoryDisplay) {
         categoryDisplay.textContent = `Category: ${categories[currentCategoryIndex]}`;
     }
 }
 
 function updateSubmittedWordsDisplay() {
-    const submittedWordsList = document.getElementById('submittedSafariWords');
-    if (submittedWordsList) {
-        submittedWordsList.innerHTML = submittedWords.map(word => `<li>${word}</li>`).join('');
+    const listEl = getEl('submittedSafariWords');
+    if (listEl) {
+        listEl.innerHTML = submittedWords.map(word => `<li>${word}</li>`).join('');
     }
 }
 
+function resetInput() {
+    const inputEl = getEl('wordSafariInput');
+    if (inputEl) inputEl.value = '';
+}
+
+function focusInput() {
+    const inputEl = getEl('wordSafariInput');
+    if (inputEl) inputEl.focus();
+}
+
 function initializeWordSafari() {
-    const submitSafariWordButton = document.getElementById('submitSafariWordBtn');
-    if (submitSafariWordButton) {
-        attachSafeClickListener(submitSafariWordButton, submitWord, 'submitSafariWordBtn');
+    const button = getEl('submitSafariWordBtn');
+    if (button) {
+        attachSafeClickListener(button, submitWord, 'submitSafariWordBtn');
     }
-    // The startGame function can be called when navigating to the Word Safari area
+
+    const inputEl = getEl('wordSafariInput');
+    if (inputEl) {
+        inputEl.addEventListener('keypress', e => {
+            if (e.key === 'Enter') submitWord();
+        });
+    }
 }
 
 export { startGame, initializeWordSafari, submitWord };
