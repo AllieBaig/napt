@@ -1,63 +1,91 @@
 // wordRelic.js
 
 import { getRandomElement } from './utils.js';
-import { attachSafeClickListener, logError } from './error-handler.js'; // Import error handling
+import { attachSafeClickListener, logError } from './error-handler.js';
 
+// ====== Constants ======
 const dailyRelics = [
     {
         word: "watch",
         category: "Thing",
         clue: "I’m something you wear, but I’m not clothing. I measure your moments.",
         lore: "This relic was used by the Timekeepers of Aralon.",
-        pronunciation: "watch.mp3", // Placeholder for audio file
+        pronunciation: "watch.mp3",
         definition: "A small timepiece worn typically on a strap on one's wrist.",
         rarity: "common"
     },
     {
         word: "maple",
-        category: "Thing", // Could also be Place or Name depending on context
+        category: "Thing",
         clue: "I have leaves that change color in the fall, and my syrup is sweet.",
         lore: "The ancient scrolls speak of the Great Maple of Eldoria, a source of wisdom.",
         pronunciation: "maple.mp3",
         definition: "A deciduous tree with lobed leaves and winged fruits, known for its syrup.",
         rarity: "common"
     },
-    // Add more word relics here...
+    // Add more relics...
 ];
 
+// ====== State ======
 let currentRelic = null;
 let hasGuessedCategory = false;
 
+// ====== Cached DOM References ======
+const DOMRefs = {
+    relicClue: document.getElementById('relicClue'),
+    categoryGuessArea: document.getElementById('categoryGuessArea'),
+    wordGuessInput: document.getElementById('wordGuess'),
+    restoreButton: document.getElementById('restoreRelicBtn'),
+    relicInfoArea: document.getElementById('relicInfo'),
+    selectedCategory: document.getElementById('selectedCategory'),
+    findRelicButton: document.getElementById('findRelicBtn')
+};
+
+// ====== Utility Functions ======
 function getRandomRelic() {
     return getRandomElement(dailyRelics);
 }
 
+function renderRelicInfo(relic) {
+    const bonusMap = { rare: 20, uncommon: 10, common: 0 };
+    const bonusPoints = bonusMap[relic.rarity] || 0;
+
+    return `
+        <h3>Relic Restored!</h3>
+        <p><strong>Word:</strong> ${relic.word}</p>
+        <p><strong>Category:</strong> ${relic.category}</p>
+        <p><strong>Definition:</strong> ${relic.definition}</p>
+        <p><strong>Lore:</strong> ${relic.lore}</p>
+        <button type="button" class="pronounce-btn" aria-label="Play pronunciation for ${relic.word}">Pronounce</button>
+        <p><strong>Rarity:</strong> ${relic.rarity}</p>
+        <p><strong>Bonus Points:</strong> +${bonusPoints}</p>
+    `;
+}
+
+function resetGameUI() {
+    if (DOMRefs.relicClue) DOMRefs.relicClue.textContent = currentRelic.clue;
+    if (DOMRefs.categoryGuessArea) DOMRefs.categoryGuessArea.style.display = 'block';
+    if (DOMRefs.wordGuessInput) {
+        DOMRefs.wordGuessInput.value = '';
+        DOMRefs.wordGuessInput.disabled = false;
+    }
+    if (DOMRefs.restoreButton) DOMRefs.restoreButton.disabled = true;
+    if (DOMRefs.relicInfoArea) {
+        DOMRefs.relicInfoArea.innerHTML = '';
+        DOMRefs.relicInfoArea.style.display = 'none';
+    }
+    if (DOMRefs.selectedCategory) {
+        DOMRefs.selectedCategory.textContent = '';
+        DOMRefs.selectedCategory.dataset.category = '';
+    }
+}
+
+// ====== Core Game Functions ======
 function displayRelicClue() {
     try {
         currentRelic = getRandomRelic();
         hasGuessedCategory = false;
-        const relicClueElement = document.getElementById('relicClue');
-        const categoryGuessArea = document.getElementById('categoryGuessArea');
-        const wordGuessInput = document.getElementById('wordGuess');
-        const restoreButton = document.getElementById('restoreRelicBtn');
-        const relicInfoArea = document.getElementById('relicInfo');
-
-        if (relicClueElement && currentRelic) {
-            relicClueElement.textContent = currentRelic.clue;
-        }
-        if (categoryGuessArea) {
-            categoryGuessArea.style.display = 'block';
-        }
-        if (wordGuessInput) {
-            wordGuessInput.value = '';
-        }
-        if (restoreButton) {
-            restoreButton.disabled = true;
-        }
-        if (relicInfoArea) {
-            relicInfoArea.innerHTML = '';
-            relicInfoArea.style.display = 'none';
-        }
+        resetGameUI();
     } catch (error) {
         console.error("Error displaying relic clue:", error);
         logError(`Error displaying relic clue: ${error.message}`);
@@ -67,14 +95,13 @@ function displayRelicClue() {
 function selectCategory(category) {
     try {
         if (currentRelic && !hasGuessedCategory) {
-            const selectedCategoryElement = document.getElementById('selectedCategory');
-            if (selectedCategoryElement) {
-                selectedCategoryElement.textContent = `Category Guess: ${category}`;
-            }
             hasGuessedCategory = true;
-            const restoreButton = document.getElementById('restoreRelicBtn');
-            if (restoreButton) {
-                restoreButton.disabled = false;
+            if (DOMRefs.selectedCategory) {
+                DOMRefs.selectedCategory.textContent = `Category Guess: ${category}`;
+                DOMRefs.selectedCategory.dataset.category = category;
+            }
+            if (DOMRefs.restoreButton) {
+                DOMRefs.restoreButton.disabled = false;
             }
         }
     } catch (error) {
@@ -85,45 +112,36 @@ function selectCategory(category) {
 
 function restoreRelic() {
     try {
-        if (currentRelic && hasGuessedCategory) {
-            const wordGuessInput = document.getElementById('wordGuess');
-            const guessedWord = wordGuessInput.value.trim().toLowerCase();
-            const selectedCategoryElement = document.getElementById('selectedCategory');
-            const guessedCategory = selectedCategoryElement.textContent.split(': ')[1];
-            const relicInfoArea = document.getElementById('relicInfo');
-
-            if (guessedWord === currentRelic.word.toLowerCase() && guessedCategory === currentRelic.category) {
-                let infoHTML = `<h3>Relic Restored!</h3>`;
-                infoHTML += `<p><strong>Word:</strong> ${currentRelic.word}</p>`;
-                infoHTML += `<p><strong>Category:</strong> ${currentRelic.category}</p>`;
-                infoHTML += `<p><strong>Definition:</strong> ${currentRelic.definition}</p>`;
-                infoHTML += `<p><strong>Lore:</strong> ${currentRelic.lore}</p>`;
-                infoHTML += `<button onclick="playPronunciation('${currentRelic.pronunciation}')">Pronounce</button>`; // Keeping onclick as per previous implementation
-                infoHTML += `<p><strong>Rarity:</strong> ${currentRelic.rarity}</p>`;
-                let bonusPoints = 0;
-                if (currentRelic.rarity === 'rare') bonusPoints = 20;
-                if (currentRelic.rarity === 'uncommon') bonusPoints = 10;
-                infoHTML += `<p><strong>Bonus Points:</strong> +${bonusPoints}</p>`;
-
-                if (relicInfoArea) {
-                    relicInfoArea.innerHTML = infoHTML;
-                    relicInfoArea.style.display = 'block';
-                }
-                const categoryGuessArea = document.getElementById('categoryGuessArea');
-                const wordGuessInput = document.getElementById('wordGuess');
-                const restoreButton = document.getElementById('restoreRelicBtn');
-                if (categoryGuessArea) categoryGuessArea.style.display = 'none';
-                if (wordGuessInput) wordGuessInput.disabled = true;
-                if (restoreButton) restoreButton.disabled = true;
-
-            } else {
-                if (relicInfoArea) {
-                    relicInfoArea.innerHTML = `<p style="color: red;">Incorrect guess! Try again tomorrow for a new relic.</p>`;
-                    relicInfoArea.style.display = 'block';
-                }
-            }
-        } else if (!hasGuessedCategory) {
+        if (!hasGuessedCategory) {
             alert("Please select a category before trying to restore the relic.");
+            return;
+        }
+
+        const guessedWord = DOMRefs.wordGuessInput.value.trim().toLowerCase();
+        const guessedCategory = DOMRefs.selectedCategory.dataset.category;
+
+        if (
+            guessedWord === currentRelic.word.toLowerCase() &&
+            guessedCategory === currentRelic.category
+        ) {
+            DOMRefs.relicInfoArea.innerHTML = renderRelicInfo(currentRelic);
+            DOMRefs.relicInfoArea.style.display = 'block';
+
+            DOMRefs.categoryGuessArea.style.display = 'none';
+            DOMRefs.wordGuessInput.disabled = true;
+            DOMRefs.restoreButton.disabled = true;
+
+            // Attach event listener to pronunciation button
+            const pronounceBtn = DOMRefs.relicInfoArea.querySelector('.pronounce-btn');
+            if (pronounceBtn) {
+                pronounceBtn.addEventListener('click', () => {
+                    playPronunciation(currentRelic.pronunciation);
+                });
+            }
+
+        } else {
+            DOMRefs.relicInfoArea.innerHTML = `<p style="color: red;" aria-live="polite">Incorrect guess! Try again tomorrow for a new relic.</p>`;
+            DOMRefs.relicInfoArea.style.display = 'block';
         }
     } catch (error) {
         console.error("Error restoring relic:", error);
@@ -131,28 +149,31 @@ function restoreRelic() {
     }
 }
 
-// Placeholder for audio playback function (keeping onclick for now)
+// ====== Audio Playback ======
 function playPronunciation(audioFile) {
-    console.log(`Playing pronunciation: ${audioFile}`);
-    // You'll need to implement actual audio playback here
+    const audio = new Audio(`./audio/${audioFile}`);
+    audio.play().catch(err => {
+        console.error("Failed to play audio:", err);
+        logError(`Audio playback error: ${err.message}`);
+    });
 }
 
+// ====== Initialization ======
 function initializeWordRelic() {
-    const findRelicButton = document.getElementById('findRelicBtn');
-    if (findRelicButton) {
-        attachSafeClickListener(findRelicButton, displayRelicClue, 'findRelicBtn');
+    if (DOMRefs.findRelicButton) {
+        attachSafeClickListener(DOMRefs.findRelicButton, displayRelicClue, 'findRelicBtn');
     }
 
-    const categoryButtons = document.querySelectorAll('#categoryGuessArea button');
+    const categoryButtons = DOMRefs.categoryGuessArea.querySelectorAll('button[data-category]');
     categoryButtons.forEach(button => {
-        attachSafeClickListener(button, function() {
-            selectCategory(this.textContent);
-        }, `categoryButton-${this.textContent}`);
+        const category = button.dataset.category;
+        attachSafeClickListener(button, () => {
+            selectCategory(category);
+        }, `categoryButton-${category}`);
     });
 
-    const restoreButton = document.getElementById('restoreRelicBtn');
-    if (restoreButton) {
-        attachSafeClickListener(restoreButton, restoreRelic, 'restoreRelicBtn');
+    if (DOMRefs.restoreButton) {
+        attachSafeClickListener(DOMRefs.restoreButton, restoreRelic, 'restoreRelicBtn');
     }
 }
 
