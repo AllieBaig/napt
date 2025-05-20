@@ -7,8 +7,10 @@ export function registerServiceWorker() {
     }
 
     // Use relative path to current module for service worker URL
-    const swUrl = new URL('service-worker.js', import.meta.url);
+    // const swUrl = new URL('service-worker.js', import.meta.url);
+    const swUrl = '/napt/service-worker.js';
 
+    
     window.addEventListener('load', () => {
         navigator.serviceWorker.register(swUrl, { updateViaCache: 'none' })
             .then(registration => {
