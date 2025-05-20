@@ -1,39 +1,88 @@
-// regularGameUI.js
+// regularGame.js
 
-export function getPlayerNames() {
-    const name1 = document.getElementById('player1Name').value.trim();
-    const name2Input = document.getElementById('player2Name');
-    const isComputer = document.getElementById('playWithComputer').checked;
-    const name2 = isComputer ? 'Computer' : name2Input.value.trim();
+import { Game } from './Game.js';
+import * as UI from './regularGameUI.js';
+import { attachSafeClickListener, logError } from './error-handler.js';
 
-    if (!name1 || (!isComputer && !name2)) {
-        return null;
+let currentGame;
+let currentWord;
+
+function startRegularGame() {
+    try {
+        const setup = UI.getPlayerNames();
+        if (!setup) {
+            UI.showMessage('Please enter names for both players.');
+            return;
+        }
+
+        currentGame = new Game(setup.playerNames, setup.isComputer);
+        UI.showGameScreen(setup.playerNames);
+        nextChallenge();
+    } catch (err) {
+        logError(`Failed to start game: ${err.message}`);
     }
-    return { playerNames: [name1, name2], isComputer };
 }
 
-export function showGameScreen(playerNames) {
-    document.getElementById('regularGameSetup').style.display = 'none';
-    document.getElementById('regularGamePlay').style.display = 'block';
-    document.getElementById('regularPlayer1Display').textContent = playerNames[0];
-    document.getElementById('regularPlayer2Display').textContent = playerNames[1];
+function nextChallenge() {
+    currentWord = currentGame.getRandomWord();
+    UI.displayNewWord(currentWord);
 }
 
-export function displayNewWord(word) {
-    document.getElementById('regularChallengeWord').textContent = word;
-    document.getElementById('regularAnswer').value = '';
-    document.getElementById('regularAnswer').focus();
+function handleAnswerSubmission() {
+    try {
+        const answer = UI.getUserAnswer();
+        const isCorrect = currentGame.submitAnswer(answer, currentWord);
+        const player = currentGame.getCurrentPlayer();
+
+        UI.showMessage(isCorrect
+            ? `${player.name} guessed correctly!`
+            : `${player.name} guessed incorrectly!`);
+
+        UI.updateScoreDisplay(currentGame.getScoreDisplay());
+
+        if (currentGame.isComputerTurn()) {
+            currentGame.nextTurn();
+            setTimeout(() => {
+                handleComputerTurn();
+            }, 1000);
+        } else {
+            currentGame.nextTurn();
+            nextChallenge();
+        }
+    } catch (err) {
+        logError(`Error submitting answer: ${err.message}`);
+    }
 }
 
-export function updateScoreDisplay(scoreString) {
-    document.getElementById('regularScoreDisplay').textContent = scoreString;
+function handleComputerTurn() {
+    try {
+        const correct = currentGame.simulateComputerGuess(currentWord);
+        UI.showMessage(correct
+            ? 'Computer guessed correctly!'
+            : 'Computer guessed incorrectly!');
+
+        UI.updateScoreDisplay(currentGame.getScoreDisplay());
+
+        currentGame.nextTurn();
+        nextChallenge();
+    } catch (err) {
+        logError(`Computer turn failed: ${err.message}`);
+    }
 }
 
-export function showMessage(msg) {
-    // Replace with better UI in real use
-    alert(msg);
+function initializeRegularGame() {
+    attachSafeClickListener(
+        document.getElementById('startRegularGameBtn'),
+        startRegularGame,
+        'startRegularGameBtn'
+    );
+    attachSafeClickListener(
+        document.getElementById('submitRegularAnswerBtn'),
+        handleAnswerSubmission,
+        'submitRegularAnswerBtn'
+    );
 }
 
-export function getUserAnswer() {
-    return document.getElementById('regularAnswer').value;
-}
+export { initializeRegularGame };
+
+
