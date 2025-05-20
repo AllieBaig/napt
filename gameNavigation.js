@@ -1,52 +1,60 @@
 // gameNavigation.js
 
-function switchToRegularGame() {
-    document.getElementById('wordSafariArea').style.display = 'none';
-    document.getElementById('diceChallengeArea').style.display = 'none';
-    document.getElementById('regularGameArea').style.display = 'block';
-    const playWithComputerCheckbox = document.getElementById('playWithComputer');
-    if (playWithComputerCheckbox.checked) {
-        // Assuming startRegularGameTimer is now imported or accessible globally
-        startRegularGameTimer();
+// Configuration: mapping of game modes to their respective DOM element IDs
+const gameAreas = {
+    regular: 'regularGameArea',
+    diceChallenge: 'diceChallengeArea',
+    wordSafari: 'wordSafariArea'
+};
+
+// Internal state to track the current active mode
+let currentMode = 'regular';
+
+/**
+ * Switches to the specified game mode by updating DOM visibility.
+ * @param {string} mode - The game mode to activate (e.g., 'regular', 'diceChallenge', 'wordSafari')
+ */
+function switchToMode(mode) {
+    if (!gameAreas.hasOwnProperty(mode)) {
+        console.warn(`Unknown game mode: ${mode}`);
+        return;
     }
-    // Assuming displayEntries is now imported or accessible globally
-    displayEntries();
-    // Assuming displayScores is now imported or accessible globally
-    displayScores();
+
+    Object.entries(gameAreas).forEach(([key, id]) => {
+        const area = document.getElementById(id);
+        if (area) {
+            area.style.display = key === mode ? 'block' : 'none';
+        }
+    });
+
+    currentMode = mode;
+}
+
+/**
+ * Gets the currently active game mode.
+ * @returns {string} - The current game mode (e.g., 'regular', 'diceChallenge', 'wordSafari')
+ */
+function getActiveGameMode() {
+    return currentMode;
+}
+
+// Optional: Mode-specific helper functions (can be removed if unused elsewhere)
+function switchToRegularGame() {
+    switchToMode('regular');
 }
 
 function switchToDiceChallenge() {
-    document.getElementById('wordSafariArea').style.display = 'none';
-    document.getElementById('regularGameArea').style.display = 'none';
-    document.getElementById('diceChallengeArea').style.display = 'block';
-    document.getElementById('diceRollStartArea').style.display = 'block';
-    document.getElementById('challengeInputs').style.display = 'none';
-    document.getElementById('challengeLetterDisplay').textContent = '?';
-    // Assuming clearInterval and challengeTimeLeft are in diceChallenge.js
-    clearInterval(challengeTimerInterval);
-    challengeTimeLeft = 60;
-    // Assuming updateChallengeTimerDisplay and clearChallengeInputs are in diceChallenge.js
-    updateChallengeTimerDisplay();
-    clearChallengeInputs();
+    switchToMode('diceChallenge');
 }
 
 function switchToWordSafari() {
-    document.getElementById('wordSafariArea').style.display = 'block';
-    document.getElementById('diceChallengeArea').style.display = 'none';
-    document.getElementById('regularGameArea').style.display = 'none';
-    // Assuming startWordSafari is now imported or accessible globally
-    startWordSafari(); // This calls loadDailySafariContent and displayPassportStamps
+    switchToMode('wordSafari');
 }
 
-
-
-function switchToWordRelic() {
-    document.getElementById('regularGameArea').style.display = 'none';
-    document.getElementById('diceChallengeArea').style.display = 'none';
-    document.getElementById('wordSafariArea').style.display = 'none';
-    document.getElementById('wordRelicArea').style.display = 'block'; // Show Word Relic
-}
-
-export { switchToRegularGame, switchToDiceChallenge, switchToWordSafari, switchToWordRelic };
-
-
+export {
+    switchToMode,
+    getActiveGameMode,
+    switchToRegularGame,
+    switchToDiceChallenge,
+    switchToWordSafari
+};
