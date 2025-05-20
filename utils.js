@@ -43,6 +43,29 @@ export function getRandomElement(array) {
     return array[Math.floor(Math.random() * array.length)];
 }
 
+
+// utils.js
+
+export const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+export function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+}
+
+export function shuffleArray(array) {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = getRandomInt(i + 1);
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+}
+
+export function normalizeWord(word) {
+    return typeof word === 'string' ? word.trim().toLowerCase() : '';
+}
+
+
 // You can remove the 'utils' object if you are only exporting individual functions
 // or you can keep it and export it as well if you have other properties:
 // export default utils;
