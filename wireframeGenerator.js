@@ -1,69 +1,86 @@
-function generateWireframeImage(week) {
-    const appContent = document.getElementById('appContent');
-    if (appContent) {
-        // Temporarily show the relevant game area and hide others
-        document.getElementById('regularGameArea').style.display = 'none';
-        document.getElementById('diceChallengeArea').style.display = 'none';
-        document.getElementById('wordSafariArea').style.display = 'none';
+// wireframeGenerator.js
 
-        if (week === 1) {
-            document.getElementById('regularGameArea').style.display = 'block';
-            // Ensure basic regular game elements are visible
-        } else if (week >= 4 && week <= 8) {
-            document.getElementById('regularGameArea').style.display = 'block';
-            // Ensure elements for Player vs Computer and scoring are visible
-            document.getElementById('playWithComputer').checked = (week >= 4);
-            // You might need to simulate adding some entries to see scores
-        } else if (week >= 9) {
-            // Show the initial game selection
-            document.getElementById('regularGameArea').style.display = 'block'; // Or leave all hidden to capture the choice screen
-        } else if (week === 10) {
-            document.getElementById('wordSafariArea').style.display = 'block';
-            startWordSafari(); // Ensure content is loaded
-        }
-
-        // Basic styling to make the wireframe more visible
-        const originalStyles = appContent.style.border;
-        const originalPadding = appContent.style.padding;
-        const originalBackground = appContent.style.backgroundColor;
-
-        appContent.style.border = '2px solid black';
-        appContent.style.padding = '10px';
-        appContent.style.backgroundColor = '#f0f0f0';
-
-        // Ensure the appContent is visible for capture
-        appContent.style.display = 'block';
-
-        html2canvas(appContent).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-            console.log(`Wireframe Image (Week ${week}):`, imgData);
-
-            // Revert styles
-            appContent.style.border = originalStyles;
-            appContent.style.padding = originalPadding;
-            appContent.style.backgroundColor = originalBackground;
-
-            // Optionally, you can display the image in the DOM for testing:
-            // const img = document.createElement('img');
-            // img.src = imgData;
-            // document.body.appendChild(img);
-
-            // After generating the image for Week 10, you might want to
-            // set the visibility back to the appropriate game mode
-            const guestId = localStorage.getItem('guestId');
-            if (guestId) {
-                if (getActiveGameMode() === 'wordSafari') {
-                    switchToWordSafari();
-                } else if (getActiveGameMode() === 'diceChallenge') {
-                    switchToDiceChallenge();
-                } else {
-                    switchToRegularGame();
-                }
-            } else {
-                appContent.style.display = 'none'; // Hide if not logged in
-            }
-        });
-    } else {
-        console.error("App content element not found.");
-    }
+/**
+ * Creates a heading element for a section title.
+ * @param {string} text
+ * @returns {HTMLElement}
+ */
+function createTitle(text) {
+  const titleElem = document.createElement('h3');
+  titleElem.textContent = text;
+  return titleElem;
 }
+
+/**
+ * Creates a list of items for a section.
+ * @param {Array} items
+ * @returns {HTMLElement}
+ */
+function createItemList(items) {
+  const list = document.createElement('ul');
+  items.forEach(item => {
+    const listItem = document.createElement('li');
+    listItem.textContent = String(item);
+    list.appendChild(listItem);
+  });
+  return list;
+}
+
+/**
+ * Creates a wireframe section element.
+ * @param {Object} section
+ * @param {string} [section.title]
+ * @param {string} [section.flex='1']
+ * @param {Array} [section.items]
+ * @returns {HTMLElement}
+ */
+function createSection({ title, flex = '1', items = [] }) {
+  const sectionElem = document.createElement('section');
+  sectionElem.classList.add('wireframe-section');
+  sectionElem.style.flex = flex;
+  sectionElem.setAttribute('role', 'region');
+  if (title) {
+    sectionElem.setAttribute('aria-label', title);
+    sectionElem.appendChild(createTitle(title));
+  }
+  if (Array.isArray(items) && items.length > 0) {
+    sectionElem.appendChild(createItemList(items));
+  }
+  return sectionElem;
+}
+
+/**
+ * Creates a wireframe layout inside a given container element or by ID.
+ * @param {string|HTMLElement} containerOrId
+ * @param {Object} layoutConfig
+ * @param {Array} layoutConfig.sections
+ */
+function createWireframe(containerOrId, layoutConfig = { sections: [] }) {
+  const container = typeof containerOrId === 'string'
+    ? document.getElementById(containerOrId)
+    : containerOrId;
+
+  if (!container) {
+    console.error('Wireframe container not found.');
+    return;
+  }
+
+  const { sections } = layoutConfig;
+
+  if (!Array.isArray(sections)) {
+    console.error('Invalid layoutConfig: "sections" must be an array.');
+    return;
+  }
+
+  container.innerHTML = '';
+  const fragment = document.createDocumentFragment();
+
+  sections.forEach(section => {
+    const sectionElem = createSection(section);
+    fragment.appendChild(sectionElem);
+  });
+
+  container.appendChild(fragment);
+}
+
+export { createWireframe };
